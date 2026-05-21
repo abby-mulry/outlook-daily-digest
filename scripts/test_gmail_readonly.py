@@ -11,6 +11,10 @@ from gmail_subscription_cleanup.config import load_settings
 from gmail_subscription_cleanup.gmail_auth import GmailAuthenticator
 from gmail_subscription_cleanup.inbox_reader import GmailInboxReader
 from gmail_subscription_cleanup.report_generator import generate_cleanup_report
+from gmail_subscription_cleanup.subscription_analyzer import (
+    UNSUBSCRIBE,
+    analyze_subscription_candidates,
+)
 
 
 def main() -> None:
@@ -33,6 +37,8 @@ def main() -> None:
         max_results=100,
         query=settings.default_query,
     )
+    candidates = analyze_subscription_candidates(cleanup_messages)
+    print(f"Unsubscribe candidates identified: {len(candidates[UNSUBSCRIBE])}")
     print(generate_cleanup_report(cleanup_messages))
 
 

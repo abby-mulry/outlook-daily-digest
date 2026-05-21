@@ -46,19 +46,31 @@ def validate_read_only_scopes(scopes: tuple[str, ...]) -> None:
 
 def load_settings(env_path: str | Path | None = None) -> Settings:
     _load_environment(env_path)
+    base_dir = Path(env_path).expanduser().resolve().parent if env_path else Path.cwd()
 
     scopes = parse_scopes(os.getenv("GMAIL_SCOPES"))
     validate_read_only_scopes(scopes)
 
     return Settings(
-        credentials_path=Path(
-            os.getenv("GMAIL_CREDENTIALS_FILE", "credentials.json")
-        ).expanduser(),
-        token_path=Path(os.getenv("GMAIL_TOKEN_FILE", "token.json")).expanduser(),
+        credentials_path=_local_path(
+            os.getenv("GMAIL_CREDENTIALS_FILE", "credentials.json"),
+            base_dir,
+        ),
+        token_path=_local_path(
+            os.getenv("GMAIL_TOKEN_FILE", "token.json"),
+            base_dir,
+        ),
         scopes=scopes,
         user_id=os.getenv("GMAIL_USER_ID", "me").strip() or "me",
         default_query=os.getenv("GMAIL_QUERY", "newer_than:90d").strip(),
     )
+
+
+def _local_path(raw_path: str, base_dir: Path) -> Path:
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return path
+    return base_dir / path
 
 
 def _load_environment(env_path: str | Path | None = None) -> None:

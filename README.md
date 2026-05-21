@@ -62,11 +62,17 @@ gmail-subscription-cleanup --messages 250 --output cleanup-report.md
 
 ## Gmail Smoke Test
 
-Use the read-only test script to authenticate, print latest inbox emails, and
-print a cleanup report preview:
+Use the read-only cleanup script to authenticate through browser login, print
+latest inbox emails, identify unsubscribe candidates, and print a cleanup report:
 
 ```bash
-python scripts/test_gmail_readonly.py
+python scripts/gmail_oauth_cleanup.py --messages 100
+```
+
+To write the Markdown report:
+
+```bash
+python scripts/gmail_oauth_cleanup.py --messages 250 --output cleanup-report.md
 ```
 
 The report groups candidates into:
