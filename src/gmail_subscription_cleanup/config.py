@@ -10,48 +10,36 @@ except ImportError:
     _load_dotenv = None
 
 
-DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
-DEFAULT_READ_ONLY_SCOPES = ("User.Read", "Mail.Read", "Calendars.Read")
-ALLOWED_READ_ONLY_SCOPES = frozenset(
-    {
-        "User.Read",
-        "Mail.Read",
-        "Mail.ReadBasic",
-        "Mail.Read.Shared",
-        "Mail.ReadBasic.Shared",
-        "Calendars.Read",
-        "Calendars.Read.Shared",
-    }
-)
+GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+DEFAULT_GMAIL_SCOPES = (GMAIL_READONLY_SCOPE,)
 
 
 @dataclass(frozen=True)
 class Settings:
-    client_id: str
-    tenant_id: str
+    credentials_path: Path
+    token_path: Path
     scopes: tuple[str, ...]
-    graph_base_url: str
-    token_cache_path: Path
-    outlook_timezone: str
+    user_id: str
+    default_query: str
 
 
 def parse_scopes(raw_scopes: str | None) -> tuple[str, ...]:
     if not raw_scopes:
-        return DEFAULT_READ_ONLY_SCOPES
+        return DEFAULT_GMAIL_SCOPES
 
     normalized = raw_scopes.replace(",", " ")
     scopes = tuple(scope.strip() for scope in normalized.split() if scope.strip())
-    return scopes or DEFAULT_READ_ONLY_SCOPES
+    return scopes or DEFAULT_GMAIL_SCOPES
 
 
 def validate_read_only_scopes(scopes: tuple[str, ...]) -> None:
-    mutating_scopes = tuple(
-        scope for scope in scopes if scope not in ALLOWED_READ_ONLY_SCOPES
+    unsupported_scopes = tuple(
+        scope for scope in scopes if scope != GMAIL_READONLY_SCOPE
     )
-    if mutating_scopes:
-        joined = ", ".join(mutating_scopes)
+    if unsupported_scopes:
+        joined = ", ".join(unsupported_scopes)
         raise ValueError(
-            "Only read-only Microsoft Graph scopes are allowed. "
+            "Only the Gmail read-only OAuth scope is allowed. "
             f"Remove or replace: {joined}"
         )
 
@@ -59,24 +47,17 @@ def validate_read_only_scopes(scopes: tuple[str, ...]) -> None:
 def load_settings(env_path: str | Path | None = None) -> Settings:
     _load_environment(env_path)
 
-    scopes = parse_scopes(os.getenv("MS_GRAPH_SCOPES"))
+    scopes = parse_scopes(os.getenv("GMAIL_SCOPES"))
     validate_read_only_scopes(scopes)
 
-    client_id = os.getenv("MS_GRAPH_CLIENT_ID", "").strip()
-    if not client_id:
-        raise ValueError("MS_GRAPH_CLIENT_ID is required in your environment or .env file.")
-
-    token_cache_path = Path(
-        os.getenv("MS_GRAPH_TOKEN_CACHE", ".msal_token_cache.json")
-    ).expanduser()
-
     return Settings(
-        client_id=client_id,
-        tenant_id=os.getenv("MS_GRAPH_TENANT_ID", "common").strip() or "common",
+        credentials_path=Path(
+            os.getenv("GMAIL_CREDENTIALS_FILE", "credentials.json")
+        ).expanduser(),
+        token_path=Path(os.getenv("GMAIL_TOKEN_FILE", "token.json")).expanduser(),
         scopes=scopes,
-        graph_base_url=os.getenv("MS_GRAPH_BASE_URL", DEFAULT_GRAPH_BASE_URL).rstrip("/"),
-        token_cache_path=token_cache_path,
-        outlook_timezone=os.getenv("OUTLOOK_TIMEZONE", "UTC").strip() or "UTC",
+        user_id=os.getenv("GMAIL_USER_ID", "me").strip() or "me",
+        default_query=os.getenv("GMAIL_QUERY", "newer_than:90d").strip(),
     )
 
 

@@ -1,18 +1,18 @@
-# Outlook Daily Digest
+# Gmail Subscription Cleanup
 
-A read-only Outlook productivity assistant that reads Microsoft Graph inbox and
-calendar data, groups email by customer, highlights likely action items and
-blockers, and generates a Markdown daily report.
+A read-only Gmail inbox analyzer that scans recent email for recurring
+newsletters and subscription senders, groups cleanup candidates, inspects
+unsubscribe metadata, and generates a Markdown cleanup report.
 
 ## Safety Model
 
 This project is read-only by design:
 
-- Uses Microsoft Graph delegated scopes: `User.Read`, `Mail.Read`, `Calendars.Read`
-- Rejects mutating scopes such as `Mail.Send` or `Calendars.ReadWrite`
-- Implements only GET requests against Microsoft Graph
+- Uses Gmail OAuth with the `https://www.googleapis.com/auth/gmail.readonly` scope
+- Rejects unneeded or mutating Gmail scopes such as `gmail.modify` or `gmail.send`
+- Reads message metadata through the Gmail API
 - Does not send email
-- Does not create, update, or delete calendar events
+- Does not archive, label, move, delete, or otherwise modify mailbox messages
 
 ## Setup
 
@@ -35,29 +35,50 @@ This project is read-only by design:
    cp .env.example .env
    ```
 
-4. Register an app in Microsoft Entra ID, enable public client flows for
-   device-code login, and add delegated Microsoft Graph permissions for
-   `User.Read`, `Mail.Read`, and `Calendars.Read`.
+4. Create a Google Cloud OAuth client for a desktop app and download the client
+   secret JSON file as `credentials.json` in the repo root.
 
-5. Update `.env`:
+5. Enable the Gmail API for the Google Cloud project.
+
+6. Update `.env`:
 
    ```dotenv
-   MS_GRAPH_CLIENT_ID=your-application-client-id
-   MS_GRAPH_TENANT_ID=common
-   MS_GRAPH_SCOPES=User.Read Mail.Read Calendars.Read
-   OUTLOOK_TIMEZONE=America/Chicago
+   GMAIL_CREDENTIALS_FILE=credentials.json
+   GMAIL_TOKEN_FILE=token.json
+   GMAIL_USER_ID=me
+   GMAIL_QUERY=newer_than:90d
+   GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
    ```
 
-## Generate a Report
+`token.json` is created after the first OAuth login and is ignored by Git.
+
+## Generate a Cleanup Report
 
 Run the package:
 
 ```bash
-outlook-daily-digest --date 2026-05-21 --output daily-report.md
+gmail-subscription-cleanup --messages 250 --output cleanup-report.md
 ```
 
-The first run starts a Microsoft device-code login. The token cache is stored
-locally at `.msal_token_cache.json`, which is ignored by Git.
+## Gmail Smoke Test
+
+Use the read-only test script to authenticate, print latest inbox emails, and
+print a cleanup report preview:
+
+```bash
+python scripts/test_gmail_readonly.py
+```
+
+The report groups candidates into:
+
+- `Unsubscribe`
+- `Keep but organize`
+- `Needs human review`
+
+Senders are only recommended for unsubscribe when unsubscribe metadata is
+present. Transactional or operational messages, such as receipts, invoices,
+security notices, support tickets, and account alerts, are routed to human
+review instead of being treated as disposable.
 
 ## Test
 

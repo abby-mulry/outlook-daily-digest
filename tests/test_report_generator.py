@@ -3,63 +3,46 @@ from __future__ import annotations
 from datetime import date
 import unittest
 
-from outlook_daily_digest.calendar_reader import OutlookEvent
-from outlook_daily_digest.inbox_reader import OutlookMessage
-from outlook_daily_digest.report_generator import generate_daily_report
+from gmail_subscription_cleanup.inbox_reader import GmailMessage
+from gmail_subscription_cleanup.report_generator import generate_cleanup_report
 
 
 class ReportGeneratorTests(unittest.TestCase):
-    def test_generate_daily_report_groups_and_flags_work(self) -> None:
+    def test_generate_cleanup_report_groups_subscription_candidates(self) -> None:
         messages = [
-            OutlookMessage(
+            GmailMessage(
                 id="1",
-                subject="Please review proposal",
-                sender_name="Casey Customer",
-                sender_email="casey@example.com",
+                thread_id="thread-1",
+                subject="Weekly product newsletter",
+                sender_name="Product Updates",
+                sender_email="news@example.com",
                 received_at="2026-05-21T09:00:00",
-                preview="Can you approve the latest version before the meeting?",
-                web_link="https://outlook.office.com/mail/1",
-                is_read=False,
-                conversation_id="thread-1",
-                importance="normal",
-                categories=(),
+                snippet="This week in product news, events, and offers.",
+                label_ids=("INBOX",),
+                headers={
+                    "list-unsubscribe": "<mailto:unsubscribe@example.com>",
+                    "list-id": "product.example.com",
+                },
             ),
-            OutlookMessage(
+            GmailMessage(
                 id="2",
-                subject="Blocked on data export",
-                sender_name="Dev Partner",
-                sender_email="dev@partner.test",
+                thread_id="thread-2",
+                subject="Monthly product newsletter",
+                sender_name="Product Updates",
+                sender_email="news@example.com",
                 received_at="2026-05-21T10:00:00",
-                preview="We are waiting on access to finish the export.",
-                web_link="",
-                is_read=True,
-                conversation_id="thread-2",
-                importance="high",
-                categories=(),
+                snippet="Recommended webinars and product insights.",
+                label_ids=("INBOX",),
+                headers={"list-unsubscribe": "<mailto:unsubscribe@example.com>"},
             ),
         ]
-        events = [
-            OutlookEvent(
-                id="event-1",
-                subject="Proposal review",
-                organizer_name="Casey Customer",
-                organizer_email="casey@example.com",
-                start="2026-05-21T13:00:00",
-                end="2026-05-21T13:30:00",
-                location="Teams",
-                attendees=("Casey Customer",),
-                web_link="",
-                is_cancelled=False,
-            )
-        ]
 
-        report = generate_daily_report(messages, events, report_date=date(2026, 5, 21))
+        report = generate_cleanup_report(messages, report_date=date(2026, 5, 21))
 
-        self.assertIn("# Outlook Daily Digest - 2026-05-21", report)
-        self.assertIn("### example.com", report)
-        self.assertIn("Please review proposal", report)
-        self.assertIn("Blocked on data export", report)
-        self.assertIn("### Proposal review", report)
+        self.assertIn("# Gmail Subscription Cleanup Report - 2026-05-21", report)
+        self.assertIn("## Unsubscribe", report)
+        self.assertIn("Product Updates <news@example.com>", report)
+        self.assertIn("Unsubscribe metadata: 1 mailto target(s)", report)
 
 
 if __name__ == "__main__":

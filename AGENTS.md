@@ -1,17 +1,16 @@
-# Outlook Daily Digest
+# Gmail Subscription Cleanup
 
-Build a read-only Outlook productivity assistant.
+Build a read-only Gmail subscription cleanup assistant.
 
 Goals:
-- Read Outlook inbox
-- Read Outlook calendar
-- Group emails by customer
-- Summarize action items
-- Identify blockers and unanswered threads
-- Generate meeting prep notes
-- Output a markdown daily report
+- Read Gmail inbox
+- Scan recent email for recurring newsletters and subscription senders
+- Group candidates into Unsubscribe, Keep but organize, and Needs human review
+- Inspect unsubscribe metadata before recommending unsubscribe
+- Avoid classifying transactional or operational mail as disposable
+- Output a markdown cleanup report
 
 Constraints:
 - Read-only
 - No sending emails
-- No calendar modifications
+- No mailbox modifications
